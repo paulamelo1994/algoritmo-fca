@@ -88,8 +88,8 @@ function EnSuspenso({ datos, navigate }) {
     <section className="col stack gap-24 pt-36">
       <div className="stack gap-16">
         <p className="eyebrow">Análisis completo</p>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <span className="big-number num">{n}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <p className="big-number num">{n}</p>
           <p className="lead">
             {n === 1 ? 'persona de la Facultad tiene' : 'personas de la Facultad tienen'} contigo
             un <strong style={{ color: 'var(--ink)' }}>Índice de Compatibilidad superior al {datos.umbral}%</strong>.
