@@ -2,9 +2,9 @@
    Rótulos, colores y textos.
 
    OJO: aquí NO se calcula ningún porcentaje. Todo el cálculo del
-   ICA vive en PostgreSQL (supabase/schema.sql). El frontend solo
-   traduce números a palabras y colores, para que la sorpresa no
-   dependa de lo que el navegador pueda inspeccionar.
+   Índice de Compatibilidad vive en PostgreSQL (supabase/schema.sql).
+   El frontend solo traduce números a palabras y colores, para que la
+   sorpresa no dependa de lo que el navegador pueda inspeccionar.
    ============================================================= */
 
 export const NIVELES = [
@@ -37,10 +37,10 @@ export const TIPOS_MATCH = {
     escala: 'Compatibilidad',
     veredicto: 'No entendemos esta conexión… pero queremos saber qué pasa.',
     campos: [
-      ['combustible', 'Combustible'],
-      ['lugar', 'Lugar ideal'],
+      ['domingo', 'Su domingo'],
       ['genero', 'Su música'],
-      ['personaje', 'Su personaje'],
+      ['pelicula', 'En cine'],
+      ['lugar', 'Lugar ideal'],
     ],
     nota: 'Ni una coincidencia de gustos. El algoritmo insiste en que se sienten juntos.',
   },
@@ -80,8 +80,9 @@ export const TIPOS_MATCH = {
     escala: 'Afinidad personal',
     veredicto: 'Una conversación fuera del horario laboral.',
     campos: [
+      ['domingo', 'Su domingo'],
       ['genero', 'Su música'],
-      ['lugar', 'Lugar ideal'],
+      ['pelicula', 'En cine'],
     ],
     nota: 'Calculado solo con las preguntas de la vida, no con las del trabajo.',
   },

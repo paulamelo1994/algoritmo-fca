@@ -92,7 +92,7 @@ function EnSuspenso({ datos, navigate }) {
           <span className="big-number num">{n}</span>
           <p className="lead">
             {n === 1 ? 'persona de la Facultad tiene' : 'personas de la Facultad tienen'} contigo
-            un <strong style={{ color: 'var(--ink)' }}>ICA superior al {datos.umbral}%</strong>.
+            un <strong style={{ color: 'var(--ink)' }}>Índice de Compatibilidad superior al {datos.umbral}%</strong>.
           </p>
         </div>
         <p className="small">

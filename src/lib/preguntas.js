@@ -1,5 +1,5 @@
 /* =============================================================
-   Las once preguntas del cuestionario.
+   Las trece preguntas del cuestionario.
 
    ⚠️  Los `id` deben coincidir con las columnas de la tabla
        `respuestas` del esquema SQL, y los TEXTOS de las opciones
@@ -9,7 +9,11 @@
 
    ⚠️  Una vez abierto el formulario, NO cambies textos ni opciones:
        las respuestas ya recogidas dejarían de coincidir con las
-       nuevas y el ICA quedaría mal calculado.
+       nuevas y el Índice de Compatibilidad quedaría mal calculado.
+
+   Diez preguntas puntúan para el Índice de Compatibilidad. La kriptonita, la canción y
+   el secreto no: alimentan el match improbable, la lista de música
+   y el juego «¿Quién es?».
    ============================================================= */
 
 export const PREGUNTAS = [
@@ -25,10 +29,10 @@ export const PREGUNTAS = [
   {
     id: 'combustible', tipo: 'multiple', max: 3,
     titulo: 'Para una jornada laboral perfecta necesito…',
-    ayuda: 'Elige hasta tres.',
     opciones: [
       ['☕', 'Café'], ['🎧', 'Música'], ['🍫', 'Algo para comer'],
-      ['💬', 'Una buena conversación'], ['🤫', 'Silencio'], ['😂', 'Buen humor'],
+      ['💬', 'Una buena conversación'], ['🤫', 'Silencio'],
+      ['😂', 'Buen humor'], ['🐶', 'Mi mascota'],
     ],
   },
   {
@@ -39,6 +43,7 @@ export const PREGUNTAS = [
       ['🧠', 'Resolver problemas'], ['📋', 'Organizar'], ['💡', 'Crear ideas'],
       ['🗣️', 'Comunicar'], ['🤝', 'Trabajar en equipo'], ['⏱️', 'Trabajar bajo presión'],
       ['🔎', 'Encontrar soluciones'], ['😂', 'Mantener el buen humor'],
+      ['📇', 'Maneja los contactos'],
     ],
   },
   {
@@ -58,31 +63,53 @@ export const PREGUNTAS = [
     titulo: 'El género musical que me representa',
     opciones: [
       ['💃', 'Salsa'], ['🪗', 'Vallenato'], ['🎸', 'Rock'], ['🎤', 'Pop'],
-      ['💔', 'Baladas'], ['🥁', 'Tropical'], ['🔊', 'Reguetón'],
-      ['🎻', 'Clásica'], ['🎷', 'Jazz y blues'], ['🤠', 'Rancheras'],
+      ['💔', 'Baladas'], ['🌞', 'Tropical'], ['🔊', 'Reguetón'],
+      ['🎻', 'Clásica'], ['🎷', 'Jazz y blues'], ['🌮', 'Rancheras'],
+      ['🌴', 'Música del Pacífico'], ['🎺', 'Melomerengues'],
+      ['🤠', 'Música popular'], ['🪩', 'Disco'], ['🎛️', 'Techno'],
     ],
   },
   {
     id: 'cancion', tipo: 'texto', opcional: true,
-    titulo: '¿Y cuál es tu canción?',
-    ayuda: 'La que suena cuando piensas en ti. Con ella armamos la lista de la Facultad.',
+    titulo: '¿Cuál es tu canción favorita?',
+    ayuda: 'Con ella armamos una playlist de la Facultad.',
     placeholder: 'Título — artista',
+  },
+  {
+    id: 'pelicula', tipo: 'unica',
+    titulo: 'Si tú escoges la película, ¿qué vemos?',
+    opciones: [
+      ['😂', 'Comedia'], ['💥', 'Acción'], ['😱', 'Terror'],
+      ['💘', 'Romance'], ['🕵️', 'Suspenso y policiacas'], ['🚀', 'Ciencia ficción'],
+      ['🎭', 'Drama'], ['📽️', 'Documentales'], ['🇨🇴', 'Cine colombiano'],
+      ['🍿', 'Animadas y familiares'],
+    ],
   },
   {
     id: 'lugar', tipo: 'unica',
     titulo: 'Si pudiera trabajar desde cualquier lugar…',
     opciones: [
       ['🏖️', 'La playa'], ['🏔️', 'La montaña'], ['🌆', 'La ciudad'],
-      ['🌳', 'El campo'], ['🏠', 'Mi casa'], ['✈️', 'Cambiaría cada semana'],
+      ['🌳', 'El campo'], ['🏠', 'Mi casa'], ['✈️', 'Cambiaría cada semana'], ['👔', 'La oficina es mi lugar favorito'],
     ],
   },
   {
     id: 'plan_equipo', tipo: 'multiple', max: 3,
     titulo: 'El plan perfecto con el equipo',
-    ayuda: 'Elige hasta tres.',
     opciones: [
       ['🍕', 'Pizza'], ['☕', 'Café'], ['🍖', 'Asado'], ['🍻', 'Cena'],
-      ['🎬', 'Cine'], ['🏞️', 'Paseo'], ['🎤', 'Karaoke'], ['🎲', 'Juegos de mesa'],
+      ['🎬', 'Cine'], ['🏞️', 'Paseo'], ['🎤', 'Karaoke'],
+      ['🎲', 'Juegos de mesa'], ['💃', 'Rumba'],
+    ],
+  },
+  {
+    id: 'domingo', tipo: 'unica',
+    titulo: '¿Cuál es tu plan de domingo?',
+    opciones: [
+      ['🧹', 'Hacer oficio'], ['🖥️', 'Maratón de series en casa'],
+      ['⛪', 'Ir a misa o al culto'], ['🚵‍♀️', 'Hacer deporte'],
+      ['🎬', 'Ir a cine'],
+      ['🛏️', 'Enchusparse'], ['😴', 'No hacer absolutamente nada'],
     ],
   },
   {
@@ -95,8 +122,8 @@ export const PREGUNTAS = [
     ],
   },
   {
-    id: 'cualidad', tipo: 'unica',
-    titulo: 'La cualidad más importante en un equipo',
+    id: 'cualidad', tipo: 'multiple', max: 2,
+    titulo: 'Las cualidades más importantes en un equipo',
     opciones: [
       ['🫶', 'Empatía'], ['✅', 'Responsabilidad'], ['✨', 'Creatividad'],
       ['🤝', 'Colaboración'], ['🙏', 'Respeto'], ['😄', 'Humor'],

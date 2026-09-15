@@ -29,13 +29,13 @@ export default function Bienvenida() {
           El Algoritmo<br />del Amor <span style={{ color: 'var(--rojo)' }}>❤</span><br />y la Amistad
         </h1>
         <p className="lead">
-          Responde diez preguntas y descubre con quiénes de la Facultad compartes
-          más de lo que creías.
+          Responde unas cuantas preguntas y descubre con quiénes de la Facultad
+          compartes más de lo que creías.
         </p>
       </div>
 
       <div className="card card--wash stack gap-12">
-        <p className="small"><strong style={{ color: 'var(--ink)' }}>Diez preguntas. Tres minutos.</strong></p>
+        <p className="small"><strong style={{ color: 'var(--ink)' }}>Trece preguntas. Cuatro minutos.</strong></p>
         <p className="small">Tus respuestas no se muestran a nadie: solo se usan para calcular afinidades.</p>
         <p className="small">No es una dinámica de parejas. El amor aquí es aprecio, compañerismo y reconocimiento.</p>
       </div>

@@ -137,6 +137,19 @@ p{margin:0}
   color:var(--azul-deep);font-weight:600;padding:11px 17px;
 }
 .chip__emoji{font-size:21px;line-height:1;flex:none}
+.chip--bloqueada{opacity:.45;cursor:default}
+.chip--bloqueada:hover{border-color:var(--hairline-strong)}
+
+/* Aviso del máximo en las preguntas de selección múltiple */
+.limite{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-radius:var(--r-field);
+  background:var(--azul-wash);color:var(--azul-deep);
+  font-size:14.5px;line-height:1.35;
+}
+.limite strong{font-weight:700}
+.limite__icono{font-size:16px;line-height:1;flex:none}
+.limite--lleno{background:#EAF7F2;color:#12654E}
 
 /* ---------- Campos ---------- */
 .field{display:flex;flex-direction:column;gap:7px}

@@ -2,7 +2,7 @@
 
 Aplicación web de la actividad de integración de la **Facultad de Ciencias de la Administración**, Universidad del Valle.
 
-Los funcionarios se registran sin login, responden un cuestionario de once preguntas y reciben un resultado en suspenso. El día de la reunión, quien administra proyecta el panel, revela los cinco matches de la Fase 3 y al final enciende un interruptor para que todos puedan ver sus compatibilidades.
+Los funcionarios se registran sin login, responden un cuestionario de trece preguntas y reciben un resultado en suspenso. El día de la reunión, quien administra proyecta el panel, revela los cinco matches de la Fase 3 y al final enciende un interruptor para que todos puedan ver sus compatibilidades.
 
 ---
 
@@ -29,7 +29,7 @@ Tiempo de montaje: unos 30 minutos la primera vez.
 1. En el menú lateral, abre **SQL Editor** → **New query**.
 2. Abre el archivo `supabase/schema.sql` de este proyecto, copia **todo** su contenido y pégalo.
 3. Presiona **Run**.
-4. Al final debe aparecer una fila con `participantes = 0`, `complementos = 8` y la configuración en JSON. Si la ves, quedó bien.
+4. Al final debe aparecer una fila con `participantes = 0`, `complementos = 11` y la configuración en JSON. Si la ves, quedó bien.
 
 El archivo se puede volver a ejecutar completo las veces que quieras: no borra datos.
 
@@ -122,7 +122,7 @@ Y en **Storage** → `perfiles`, selecciona todo y elimina las fotos.
 
 ```
 src/
-  lib/preguntas.js     Las once preguntas y sus opciones
+  lib/preguntas.js     Las trece preguntas y sus opciones
   lib/escala.js        Rótulos, colores y textos. NO calcula nada.
   lib/supabase.js      Cliente y URLs de las fotos
   components/Base.jsx  Cabezote, avatar, insignia, spinner
@@ -130,39 +130,113 @@ src/
 supabase/schema.sql    Tablas, seguridad y TODO el algoritmo
 ```
 
-**El cálculo del ICA vive entero en PostgreSQL**, no en el navegador. No es un capricho: si el frontend recibiera las respuestas de todos para calcular ahí, cualquiera con la consola del navegador abierta vería los matches antes de la reunión y se acabaría la sorpresa. Por eso las tablas están cerradas a lectura anónima y la única puerta son las funciones del esquema, que devuelven exactamente lo que cada pantalla necesita.
+**El cálculo del Índice de Compatibilidad vive entero en PostgreSQL**, no en el navegador. No es un capricho: si el frontend recibiera las respuestas de todos para calcular ahí, cualquiera con la consola del navegador abierta vería los matches antes de la reunión y se acabaría la sorpresa. Por eso las tablas están cerradas a lectura anónima y la única puerta son las funciones del esquema, que devuelven exactamente lo que cada pantalla necesita.
 
 Mientras la revelación está apagada, `mi_resumen()` devuelve un número y nada más: ni un nombre viaja al navegador.
 
-### Sobre el porcentaje
+## Cómo califica el algoritmo
 
-El puntaje crudo de coincidencias es engañosamente bajo. Con ocho preguntas de seis a diez opciones, coincidir en la mitad ya es muchísimo, y la pareja más compatible de un equipo real ronda el 40 %. Sin escalar, el mensaje «tienes más de 80 % con tres personas» nunca se cumpliría.
+Son cuatro fórmulas distintas, no una sola con distintos nombres. Cada categoría de la Fase 3 usa la suya.
 
-Por eso el ICA que se muestra es el crudo **escalado contra la mejor pareja del grupo**. El orden del ranking no cambia: cambia la escala. Si prefieres números crudos, quita la llamada a `fn_escalar` en el esquema.
+### El Índice de Compatibilidad — las diez preguntas que puntúan
 
-### Los cinco matches
+Decide el **match perfecto** (el más alto de todas las parejas), el **match improbable** (el más bajo) y el ranking personal que ve cada funcionario.
 
-Cada categoría se calcula distinto, no es el mismo número maquillado:
+| Pregunta | Peso | Cómo se compara |
+|---|---|---|
+| Superpoder laboral | **18 %** | Coincide o no |
+| Cualidades del equipo | **14 %** | Proporción compartida \* |
+| Plan con el equipo | **12 %** | Proporción compartida \* |
+| Plan de domingo | **11 %** | Coincide o no |
+| Combustible | **9 %** | Proporción compartida \* |
+| Género musical | **9 %** | Coincide o no |
+| Película | **9 %** | Coincide o no |
+| Lugar ideal | **8 %** | Coincide o no |
+| Personaje | **6 %** | Coincide o no |
+| Emoji | **4 %** | Coincide o no |
+| | **100 %** | |
 
-| Categoría | Cómo se elige |
+\* En las preguntas de selección múltiple no es todo o nada: se divide lo que comparten entre todo lo que marcaron entre los dos (índice de Jaccard). Si una persona marcó `{café, música}` y la otra `{café, humor, música}`, comparten 2 de 3 → 0,67 → se llevan el 67 % de ese peso.
+
+El emoji pesa poco a propósito: es la pregunta más ambigua del cuestionario. Dos personas pueden marcar «Curioso» por razones completamente distintas.
+
+**No puntúan:** la kriptonita, la canción y el secreto. Alimentan el match improbable, la lista de música de la Facultad y el juego «¿Quién es?».
+
+### El match de la amistad — solo las preguntas de la vida
+
+Ignora por completo el superpoder, el personaje y las cualidades. Responde «¿con quién te tomarías un café fuera de la oficina?», y eso no se mide con competencias laborales.
+
+| Pregunta | Peso |
 |---|---|
-| 🥇 El match perfecto | El ICA más alto de todas las parejas |
-| ⚡ El match improbable | El ICA más bajo |
-| 🧩 El complementario | Tabla `complementos` de superpoderes que se potencian, más personajes distintos |
-| 🚨 Sobrevivirían juntos | `fn_valor_crisis` pondera cada superpoder ante una crisis |
-| 💛 El de la amistad | Solo con las preguntas de la vida: emoji, combustible, música, lugar y planes |
+| Plan de domingo | **22 %** |
+| Género musical | **18 %** |
+| Película | **18 %** |
+| Plan con el equipo | **16 %** |
+| Combustible | **14 %** |
+| Lugar ideal | **8 %** |
+| Emoji | **4 %** |
+| | **100 %** |
 
-**Una persona no se repite entre categorías.** Sin esa regla, la misma pareja tiende a ganar tres de las cinco y la reunión pierde gracia.
+### El match complementario — no busca parecidos
 
-Las dos tablas más subjetivas son `complementos` y `fn_valor_crisis`: las definí con criterio razonable, pero cuando veas las respuestas reales conviene revisar qué parejas salen y ajustarlas desde el SQL Editor. Ahí el algoritmo está opinando sobre personas que ustedes conocen.
+| Componente | Vale |
+|---|---|
+| Sus superpoderes están en la tabla `complementos` | **60 %** |
+| Tienen personajes distintos | **20 %** |
+| Qué tan distintos son sus planes con el equipo | **hasta 20 %** |
+
+### Sobrevivirían juntos — qué tan útil es cada superpoder en una crisis
+
+| Superpoder | Valor |
+|---|---|
+| Trabajar bajo presión · Resolver problemas | 1,00 |
+| Encontrar soluciones | 0,95 |
+| Organizar | 0,90 |
+| Maneja los contactos | 0,85 |
+| Mantener el buen humor | 0,80 |
+| Trabajar en equipo | 0,75 |
+| Comunicar | 0,65 |
+| Crear ideas | 0,50 |
+
+Se promedian los dos valores y encima se suma: **+12 %** si los superpoderes son distintos (aportan cosas diferentes ante el mismo problema) y **+5 %** por cada persona que valore compromiso, responsabilidad o confianza. El total se corta en 100 %.
+
+### Las dos tablas subjetivas
+
+`complementos` y `fn_valor_crisis` las definimos con criterio razonable, pero son opiniones, no hechos. Cuando veas las respuestas reales conviene revisar qué parejas salen y ajustarlas desde el SQL Editor: ahí el algoritmo está opinando sobre personas que ustedes conocen.
+
+---
+
+## Por qué los porcentajes están escalados
+
+El puntaje crudo de coincidencias es engañosamente bajo. Con diez preguntas de seis a quince opciones, coincidir en la mitad ya es muchísimo, y la pareja más compatible de un equipo real ronda el 40 %. Sin escalar, el mensaje «tienes más de 80 % con tres personas» nunca se cumpliría.
+
+Por eso el porcentaje que se muestra es el crudo **escalado**, con la fórmula `97 × (crudo ÷ referencia) ^ 0,8`. El orden del ranking no cambia nunca: cambia la escala.
+
+La pregunta interesante es contra qué referencia.
+
+**En el ranking personal** (el top 3 y el Índice de Compatibilidad de cada persona) la referencia es **la mejor pareja de todo el grupo**. Así los porcentajes son comparables entre personas: el 87 % de Ana y el 87 % de Pedro quieren decir lo mismo.
+
+**En las cinco categorías de la reunión** la referencia es **la mejor pareja que todavía estaba disponible** en el turno de esa categoría. Esto necesita explicación.
+
+Las categorías se resuelven en orden y cada una descarta a quienes ya salieron, para que no se repita gente. La amistad es **la última**, así que cuando le llega el turno sus mejores parejas suelen estar ocupadas. Midiéndola contra la mejor del grupo entero —una pareja que la elegida no puede alcanzar porque ni siquiera compite— salían números como 40 %, que proyectados se leen como «se llevan poquito» cuando en realidad querían decir «menos que aquella otra pareja, que ustedes no van a ver».
+
+Con la referencia local, la pareja mostrada en cada categoría siempre sale alta, que es lo que corresponde: es la mejor de su categoría entre las que quedaban.
+
+**El precio de esta decisión:** los porcentajes ya no son comparables *entre* categorías. Un 97 % en amistad y un 97 % en el match perfecto no significan lo mismo. Dentro de una misma categoría sí, y en la reunión nunca se proyectan dos categorías a la vez.
+
+La excepción es el **match improbable**, que también se mide contra la mejor disponible pero al revés: ahí un número bajo es justamente el chiste.
+
+### Cuántas personas se necesitan
+
+Cinco categorías × dos personas = **diez personas distintas como mínimo**. Con menos, es matemáticamente imposible que no se repita alguien, y el panel lo avisa con una línea naranja bajo el match. Con menos de diez la aplicación no se rompe: prefiere repetir antes que dejarte una categoría vacía en plena reunión.
 
 ---
 
 ## Advertencias
 
-**No cambies los textos de las preguntas una vez abierto el formulario.** Las respuestas ya guardadas dejarían de coincidir con las nuevas y el ICA quedaría mal calculado. Si tienes que cambiar algo, hazlo antes de compartir el enlace.
+**No cambies los textos de las preguntas una vez abierto el formulario.** Las respuestas ya guardadas dejarían de coincidir con las nuevas y el Índice de Compatibilidad quedaría mal calculado. Si tienes que cambiar algo, hazlo antes de compartir el enlace.
 
-**Los pesos del ICA están en `supabase/schema.sql`**, en la función `fn_ica_crudo`. Si cambias un peso, revisa que sigan sumando 1.
+**Los pesos del Índice de Compatibilidad están en `supabase/schema.sql`**, en la función `fn_ica_crudo`. Si cambias un peso, revisa que sigan sumando 1.
 
 **Supabase pausa los proyectos gratuitos tras una semana sin actividad.** Para esta actividad no es problema, pero verifica el día anterior que el proyecto responda. Si quieres conservar el sitio después, entra al panel de Supabase cada semana o exporta los datos.
 
@@ -186,17 +260,3 @@ Las dos tablas más subjetivas son `complementos` y `fn_valor_crisis`: las defin
 ---
 
 Facultad de Ciencias de la Administración · Universidad del Valle · 2026
-
----
-
-## Nota sobre `despliegue/deploy.yml`
-
-El archivo del flujo de GitHub Actions llegó en la carpeta `despliegue/` porque las
-rutas `.github/workflows/` están protegidas y no se pueden escribir desde
-herramientas remotas. **Antes del paso 6, muévelo a su lugar:**
-
-```bash
-mkdir -p .github/workflows
-mv despliegue/deploy.yml .github/workflows/deploy.yml
-rmdir despliegue
-```

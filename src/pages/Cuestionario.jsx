@@ -18,6 +18,7 @@ export default function Cuestionario() {
   const q = PREGUNTAS[i]
   const valor = borrador.respuestas[q.id]
   const esUltima = i === PREGUNTAS.length - 1
+  const marcadas = Array.isArray(valor) ? valor.length : 0
 
   const responder = (v) => setBorrador((b) => ({ ...b, respuestas: { ...b.respuestas, [q.id]: v } }))
 
@@ -57,6 +58,22 @@ export default function Cuestionario() {
       <div className="stack gap-16">
         <h2 className="display" style={{ fontSize: 28 }}>{q.titulo}</h2>
         {q.ayuda && <p className="small">{q.ayuda}</p>}
+
+        {/* El aviso del máximo iba antes como texto gris pequeño y la gente
+            no lo veía: marcaban una opción y seguían. Ahora es una etiqueta
+            destacada que además lleva la cuenta en vivo. */}
+        {q.tipo === 'multiple' && (
+          <p className={`limite ${marcadas >= q.max ? 'limite--lleno' : ''}`} role="status">
+            <span className="limite__icono" aria-hidden="true">
+              {marcadas >= q.max ? '✓' : '☑'}
+            </span>
+            <span>
+              Puedes elegir <strong>hasta {q.max} {q.max === 2 ? 'opciones' : 'opciones'}</strong>
+              {marcadas > 0 && ` · llevas ${marcadas}`}
+              {marcadas >= q.max && ' (máximo alcanzado)'}
+            </span>
+          </p>
+        )}
       </div>
 
       {q.tipo === 'texto' ? (
@@ -71,8 +88,13 @@ export default function Cuestionario() {
             const activo = q.tipo === 'multiple'
               ? Array.isArray(valor) && valor.includes(label)
               : valor === label
+            // Al llegar al máximo, las que no están marcadas se ven
+            // apagadas: así se entiende por qué dejaron de responder.
+            const bloqueada = q.tipo === 'multiple' && !activo && marcadas >= q.max
             return (
-              <button key={label} type="button" className="chip" aria-pressed={activo}
+              <button key={label} type="button"
+                      className={`chip ${bloqueada ? 'chip--bloqueada' : ''}`}
+                      aria-pressed={activo} aria-disabled={bloqueada || undefined}
                       onClick={() => q.tipo === 'multiple' ? alternarMultiple(label) : responder(label)}>
                 <span className="chip__emoji" aria-hidden="true">{emoji}</span>
                 <span>{label}</span>

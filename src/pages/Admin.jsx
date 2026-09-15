@@ -333,7 +333,7 @@ function Panel() {
                 <table>
                   <thead>
                     <tr>
-                      <th>#</th><th>Funcionario</th><th>Área</th><th>ICA</th><th>Nivel</th><th>En común</th>
+                      <th>#</th><th>Funcionario</th><th>Área</th><th>Compatibilidad</th><th>Nivel</th><th>En común</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -351,7 +351,7 @@ function Panel() {
                 </table>
               </div>
               <p className="tiny">
-                El ICA se calcula al vuelo: una respuesta que llegue tarde entra al ranking de
+                El Índice de Compatibilidad se calcula al vuelo: una respuesta que llegue tarde entra al ranking de
                 inmediato. El porcentaje está escalado contra la pareja más compatible del grupo.
               </p>
             </div>

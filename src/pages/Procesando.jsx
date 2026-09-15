@@ -102,7 +102,7 @@ export default function Procesando() {
       <div className="processing">
         <div className="pulse" aria-hidden="true">❤️</div>
         <div className="stack gap-12" style={{ alignItems: 'center' }}>
-          <p className="eyebrow">Índice de Compatibilidad Administrativa</p>
+          <p className="eyebrow">Índice de Compatibilidad</p>
           <p className="proc-line" role="status">{linea}</p>
         </div>
         <p className="proc-pct num">{pct}%</p>

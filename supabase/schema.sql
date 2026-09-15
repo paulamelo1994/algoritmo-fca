@@ -39,13 +39,32 @@ create table if not exists respuestas (
   kriptonita    text,
   genero        text,
   cancion       text,
+  pelicula      text,
   lugar         text,
   plan_equipo   text[],
+  domingo       text,
   personaje     text,
-  cualidad      text,
+  cualidad      text[],   -- dos selecciones, igual que combustible y plan
   secreto       text,
   completado_en timestamptz not null default now()
 );
+
+-- Si ya existe la tabla de una versión anterior, alinearla.
+-- (Estas líneas no hacen nada en una instalación nueva.)
+alter table respuestas add column if not exists pelicula text;
+alter table respuestas add column if not exists domingo  text;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'respuestas' and column_name = 'cualidad'
+      and data_type <> 'ARRAY'
+  ) then
+    alter table respuestas
+      alter column cualidad type text[]
+      using case when cualidad is null then null else array[cualidad] end;
+  end if;
+end $$;
 
 create table if not exists configuracion (
   id                 int primary key default 1 check (id = 1),
@@ -76,7 +95,10 @@ insert into complementos (a, b) values
   ('Trabajar bajo presión', 'Mantener el buen humor'),
   ('Trabajar en equipo',    'Resolver problemas'),
   ('Comunicar',             'Organizar'),
-  ('Encontrar soluciones',  'Mantener el buen humor')
+  ('Encontrar soluciones',  'Mantener el buen humor'),
+  ('Maneja los contactos',  'Resolver problemas'),
+  ('Maneja los contactos',  'Crear ideas'),
+  ('Maneja los contactos',  'Organizar')
 on conflict do nothing;
 
 
@@ -102,28 +124,33 @@ language sql immutable as $$
 $$;
 
 -- Puntaje crudo del ICA: suma ponderada de coincidencias, de 0 a 1.
---   Personalidad (emoji)      10 %
---   Combustible               10 %
---   Superpoder laboral        20 %
---   Género musical            10 %
---   Lugar ideal               10 %
---   Plan con el equipo        15 %
---   Personaje                 10 %
---   Cualidad que valora       15 %
+-- Diez preguntas puntúan y los pesos suman exactamente 1:
+--   Superpoder laboral        18 %   ← lo que más define en el trabajo
+--   Cualidades que valora     14 %
+--   Plan con el equipo        12 %
+--   Plan de domingo           11 %
+--   Combustible                9 %
+--   Género musical             9 %
+--   Película                   9 %
+--   Lugar ideal                8 %
+--   Personaje                  6 %
+--   Personalidad (emoji)       4 %   ← es el más ambiguo de todos
 -- La kriptonita, la canción y el secreto no puntúan: alimentan el
--- match improbable y el juego "¿Quién es?".
+-- match improbable, la lista de música y el juego "¿Quién es?".
 create or replace function fn_ica_crudo(a respuestas, b respuestas)
 returns numeric
 language sql immutable as $$
   select
-      (case when a.emoji      = b.emoji      then 0.10 else 0 end)
-    + (case when a.superpoder = b.superpoder then 0.20 else 0 end)
-    + (case when a.genero     = b.genero     then 0.10 else 0 end)
-    + (case when a.lugar      = b.lugar      then 0.10 else 0 end)
-    + (case when a.personaje  = b.personaje  then 0.10 else 0 end)
-    + (case when a.cualidad   = b.cualidad   then 0.15 else 0 end)
-    + 0.10 * fn_jaccard(a.combustible, b.combustible)
-    + 0.15 * fn_jaccard(a.plan_equipo, b.plan_equipo);
+      (case when a.superpoder = b.superpoder then 0.18 else 0 end)
+    + (case when a.domingo    = b.domingo    then 0.11 else 0 end)
+    + (case when a.genero     = b.genero     then 0.09 else 0 end)
+    + (case when a.pelicula   = b.pelicula   then 0.09 else 0 end)
+    + (case when a.lugar      = b.lugar      then 0.08 else 0 end)
+    + (case when a.personaje  = b.personaje  then 0.06 else 0 end)
+    + (case when a.emoji      = b.emoji      then 0.04 else 0 end)
+    + 0.14 * fn_jaccard(a.cualidad,    b.cualidad)
+    + 0.12 * fn_jaccard(a.plan_equipo, b.plan_equipo)
+    + 0.09 * fn_jaccard(a.combustible, b.combustible);
 $$;
 
 -- Lo que dos personas tienen en común, en palabras.
@@ -137,12 +164,14 @@ language sql immutable as $$
       case when a.emoji      = b.emoji      then a.emoji      end,
       case when a.superpoder = b.superpoder then a.superpoder end,
       case when a.genero     = b.genero     then a.genero     end,
+      case when a.pelicula   = b.pelicula   then a.pelicula   end,
+      case when a.domingo    = b.domingo    then a.domingo    end,
       case when a.lugar      = b.lugar      then a.lugar      end,
-      case when a.personaje  = b.personaje  then a.personaje  end,
-      case when a.cualidad   = b.cualidad   then a.cualidad   end
+      case when a.personaje  = b.personaje  then a.personaje  end
     ], null)
     || coalesce(array(select unnest(a.combustible) intersect select unnest(b.combustible)), '{}')
     || coalesce(array(select unnest(a.plan_equipo) intersect select unnest(b.plan_equipo)), '{}')
+    || coalesce(array(select unnest(a.cualidad)    intersect select unnest(b.cualidad)),    '{}')
   as v) x;
 $$;
 
@@ -179,6 +208,7 @@ language sql immutable as $$
     when 'Mantener el buen humor' then 0.80
     when 'Trabajar en equipo'     then 0.75
     when 'Comunicar'              then 0.65
+    when 'Maneja los contactos'   then 0.85  -- en una crisis, saber a quién llamar vale oro
     when 'Crear ideas'            then 0.50
     else 0.50
   end;
@@ -205,21 +235,32 @@ language sql immutable as $$
   select least(1.0,
       (fn_valor_crisis(a.superpoder) + fn_valor_crisis(b.superpoder)) / 2
     + (case when a.superpoder is distinct from b.superpoder then 0.12 else 0 end)
-    + (case when a.cualidad in ('Compromiso','Responsabilidad','Confianza') then 0.05 else 0 end)
-    + (case when b.cualidad in ('Compromiso','Responsabilidad','Confianza') then 0.05 else 0 end)
+    + (case when a.cualidad && array['Compromiso','Responsabilidad','Confianza'] then 0.05 else 0 end)
+    + (case when b.cualidad && array['Compromiso','Responsabilidad','Confianza'] then 0.05 else 0 end)
   );
 $$;
 
--- La amistad no se mide con las preguntas de trabajo.
+-- La amistad no se mide con las preguntas de trabajo: ignora el
+-- superpoder, el personaje y las cualidades, y carga el peso en lo que
+-- de verdad predice que dos personas se busquen un sábado.
+--   Plan de domingo   22 %
+--   Género musical    18 %
+--   Película          18 %
+--   Plan con el equipo 16 %
+--   Combustible       14 %
+--   Lugar ideal        8 %
+--   Emoji              4 %
 create or replace function fn_amistad(a respuestas, b respuestas)
 returns numeric
 language sql immutable as $$
   select
-      (case when a.emoji  = b.emoji  then 0.15 else 0 end)
-    + (case when a.genero = b.genero then 0.25 else 0 end)
-    + (case when a.lugar  = b.lugar  then 0.20 else 0 end)
-    + 0.20 * fn_jaccard(a.combustible, b.combustible)
-    + 0.20 * fn_jaccard(a.plan_equipo, b.plan_equipo);
+      (case when a.domingo  = b.domingo  then 0.22 else 0 end)
+    + (case when a.genero   = b.genero   then 0.18 else 0 end)
+    + (case when a.pelicula = b.pelicula then 0.18 else 0 end)
+    + (case when a.lugar    = b.lugar    then 0.08 else 0 end)
+    + (case when a.emoji    = b.emoji    then 0.04 else 0 end)
+    + 0.16 * fn_jaccard(a.plan_equipo, b.plan_equipo)
+    + 0.14 * fn_jaccard(a.combustible, b.combustible);
 $$;
 
 
@@ -291,7 +332,8 @@ begin
 
   insert into respuestas (
     correo, emoji, combustible, superpoder, kriptonita, genero,
-    cancion, lugar, plan_equipo, personaje, cualidad, secreto
+    cancion, pelicula, lugar, plan_equipo, domingo, personaje,
+    cualidad, secreto
   ) values (
     v_correo,
     payload->>'emoji',
@@ -300,10 +342,12 @@ begin
     payload->>'kriptonita',
     payload->>'genero',
     payload->>'cancion',
+    payload->>'pelicula',
     payload->>'lugar',
     coalesce((select array_agg(value::text) from jsonb_array_elements_text(payload->'plan_equipo')), '{}'),
+    payload->>'domingo',
     payload->>'personaje',
-    payload->>'cualidad',
+    coalesce((select array_agg(value::text) from jsonb_array_elements_text(payload->'cualidad')), '{}'),
     payload->>'secreto'
   );
 
@@ -329,17 +373,54 @@ begin
 end;
 $$;
 
+-- Todas las parejas posibles con sus cuatro puntajes, calculadas en un
+-- solo lugar. No se le concede acceso a nadie: solo la usan las
+-- funciones security definer de este archivo.
+create or replace view v_pares as
+select
+  x.correo as ca, y.correo as cb,
+  fn_ica_crudo(x, y)      as raw,
+  fn_comunes(x, y)        as comunes,
+  fn_complementaria(x, y) as comp,
+  fn_crisis(x, y)         as crisis,
+  fn_amistad(x, y)        as amistad,
+  x.superpoder as sa, y.superpoder as sb,
+  x.kriptonita as ka, y.kriptonita as kb,
+  x.personaje  as pa, y.personaje  as pb,
+  array_to_string(x.cualidad, ' y ') as qa,
+  array_to_string(y.cualidad, ' y ') as qb,
+  x.genero     as ga, y.genero     as gb,
+  x.lugar      as la, y.lugar      as lb,
+  x.emoji      as ea, y.emoji      as eb,
+  x.domingo    as da, y.domingo    as db,
+  x.pelicula   as ma, y.pelicula   as mb,
+  x.combustible as fa, y.combustible as fb
+from respuestas x join respuestas y on x.correo < y.correo;
+
+revoke all on v_pares from anon, authenticated;
+
 -- Los cinco matches de la Fase 3. La usa el panel de administración
 -- y también la pantalla del participante, para decirle en qué
 -- categorías salió.
 --
--- Regla importante: una persona no se repite entre categorías. Sin
--- ella, la misma pareja tiende a ganar el match perfecto Y el
--- complementario Y el improbable, y la reunión pierde gracia porque
--- siempre se nombra a la misma gente. Las categorías se resuelven en
--- orden de prioridad y cada una descarta a quienes ya salieron. Si el
--- grupo es tan pequeño que no quedan parejas libres, se permite la
--- repetición antes que dejar la categoría vacía.
+-- Regla 1 — una persona no se repite entre categorías. Sin ella, la
+-- misma pareja tiende a ganar el match perfecto Y el complementario Y
+-- el de la amistad, y la reunión pierde gracia porque siempre se
+-- nombra a la misma gente. Las categorías se resuelven en orden de
+-- prioridad y cada una descarta a quienes ya salieron. Si el grupo es
+-- tan pequeño que no quedan parejas libres, se permite la repetición
+-- antes que dejar la categoría vacía.
+--
+-- Regla 2 — cada categoría escala su porcentaje contra la mejor pareja
+-- DISPONIBLE en su turno, no contra la mejor del grupo entero. La
+-- amistad es la última en resolverse, así que sus mejores parejas
+-- suelen estar ya ocupadas; midiendo contra un listón que la pareja
+-- elegida no puede alcanzar, salía un número bajo que en la proyección
+-- se leía como "se llevan poquito" cuando en realidad quiere decir
+-- "menos que aquella otra pareja, que ustedes no van a ver".
+-- Con la referencia local, la pareja mostrada siempre sale alta.
+-- El precio: los porcentajes ya no son comparables ENTRE categorías.
+-- Dentro de una categoría sí, y es lo único que se proyecta.
 create or replace function matches_fase3()
 returns jsonb
 language plpgsql stable security definer set search_path = public as $$
@@ -352,38 +433,24 @@ declare
   v_ref_ami numeric;
   v_par     record;
   v_pct     int;
-  v_orden   int := 0;
 begin
-  select coalesce(max(fn_ica_crudo(x, y)), 0.0001) into v_ref
-    from respuestas x join respuestas y on x.correo < y.correo;
-  select coalesce(max(fn_amistad(x, y)), 0.0001) into v_ref_ami
-    from respuestas x join respuestas y on x.correo < y.correo;
-
   foreach v_tipo in array v_tipos loop
-    v_orden := v_orden + 1;
+
+    -- Referencia de escala: la mejor pareja que todavía está libre.
+    -- Si no queda ninguna libre, se cae a la mejor del grupo entero.
+    select coalesce(max(t.raw)     filter (where t.libre), max(t.raw),     0.0001),
+           coalesce(max(t.amistad) filter (where t.libre), max(t.amistad), 0.0001)
+      into v_ref, v_ref_ami
+    from (
+      select p.raw, p.amistad,
+             (p.ca <> all(v_usados) and p.cb <> all(v_usados)) as libre
+      from v_pares p
+    ) t;
 
     for v_par in
-      with pares as (
-        select
-          x.correo as ca, y.correo as cb,
-          fn_ica_crudo(x, y)      as raw,
-          fn_comunes(x, y)        as comunes,
-          fn_complementaria(x, y) as comp,
-          fn_crisis(x, y)         as crisis,
-          fn_amistad(x, y)        as amistad,
-          x.superpoder as sa, y.superpoder as sb,
-          x.kriptonita as ka, y.kriptonita as kb,
-          x.personaje  as pa, y.personaje  as pb,
-          x.cualidad   as qa, y.cualidad   as qb,
-          x.genero     as ga, y.genero     as gb,
-          x.lugar      as la, y.lugar      as lb,
-          x.emoji      as ea, y.emoji      as eb,
-          x.combustible as fa, y.combustible as fb
-        from respuestas x join respuestas y on x.correo < y.correo
-      )
       select p.*,
              (p.ca <> all(v_usados) and p.cb <> all(v_usados)) as libre
-      from pares p
+      from v_pares p
       order by
         -- primero las parejas sin personas repetidas
         (p.ca <> all(v_usados) and p.cb <> all(v_usados)) desc,
@@ -398,6 +465,8 @@ begin
     loop
       v_pct := case v_tipo
         when 'perfecto'       then fn_escalar(v_par.raw, v_ref)
+        -- El improbable se mide contra la mejor disponible a propósito:
+        -- es la única categoría donde un número bajo es el chiste.
         when 'improbable'     then fn_escalar(v_par.raw, v_ref)
         when 'complementario' then least(97, round(v_par.comp * 100))::int
         when 'crisis'         then least(99, round(v_par.crisis * 100))::int
@@ -427,6 +496,8 @@ begin
           'cualidad',    jsonb_build_array(v_par.qa, v_par.qb),
           'genero',      jsonb_build_array(v_par.ga, v_par.gb),
           'lugar',       jsonb_build_array(v_par.la, v_par.lb),
+          'domingo',     jsonb_build_array(v_par.da, v_par.db),
+          'pelicula',    jsonb_build_array(v_par.ma, v_par.mb),
           'combustible', jsonb_build_array(v_par.fa[1], v_par.fb[1])
         )
       ));
