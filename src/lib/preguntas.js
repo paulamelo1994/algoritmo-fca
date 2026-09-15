@@ -82,7 +82,7 @@ export const PREGUNTAS = [
       ['😂', 'Comedia'], ['💥', 'Acción'], ['😱', 'Terror'],
       ['💘', 'Romance'], ['🕵️', 'Suspenso y policiacas'], ['🚀', 'Ciencia ficción'],
       ['🎭', 'Drama'], ['📽️', 'Documentales'], ['🇨🇴', 'Cine colombiano'],
-      ['🍿', 'Animadas y familiares'],
+      ['🍿', 'Animadas y familiares'], ['🥢', 'K-Drama']
     ],
   },
   {
@@ -114,7 +114,7 @@ export const PREGUNTAS = [
   },
   {
     id: 'personaje', tipo: 'unica',
-    titulo: 'En una película sobre la Facultad, yo sería…',
+    titulo: 'En una película sobre la Facultad, tú serías…',
     opciones: [
       ['🦸', 'El héroe que resuelve todo'], ['🕵️', 'El detective'], ['🧙', 'El sabio'],
       ['🎨', 'El creativo'], ['🚨', 'El que apaga incendios'],
