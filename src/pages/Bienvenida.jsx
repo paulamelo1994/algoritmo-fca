@@ -1,19 +1,25 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useConfig, leerSesion } from '../App'
+import { useConfig, leerSesion, borrarSesion } from '../App'
 import { Aviso } from '../components/Base'
 
 export default function Bienvenida() {
   const navigate = useNavigate()
   const { config } = useConfig()
-  const sesion = leerSesion()
+  const [sesion, setSesion] = useState(leerSesion)
+  const yaRespondio = Boolean(sesion?.correo && sesion?.codigo)
 
-  // Quien ya respondió desde este dispositivo entra directo a su resultado.
-  useEffect(() => {
-    if (sesion?.correo && sesion?.codigo) navigate('/resultado', { replace: true })
-  }, [sesion, navigate])
+  // Antes esta pantalla redirigía sola a /resultado cuando había sesión
+  // guardada, y eso hacía imposible volver al inicio: el botón "Salir"
+  // navegaba aquí y el efecto rebotaba de vuelta al resultado.
+  // Ahora la pantalla se adapta en vez de redirigir.
 
   const cerrado = config && config.formulario_abierto === false
+
+  function salirDeEsteDispositivo() {
+    borrarSesion()
+    setSesion(null) // re-renderiza sin recargar la página
+  }
 
   return (
     <section className="col stack gap-32 pt-44">
@@ -34,21 +40,32 @@ export default function Bienvenida() {
         <p className="small">No es una dinámica de parejas. El amor aquí es aprecio, compañerismo y reconocimiento.</p>
       </div>
 
-      {cerrado && (
+      {cerrado && !yaRespondio && (
         <Aviso>
           El formulario ya está cerrado. Si alcanzaste a responder, entra con
           «Ya me registré» para ver tu resultado.
         </Aviso>
       )}
 
-      <div className="stack gap-12">
-        <button className="btn" disabled={cerrado} onClick={() => navigate('/registro')}>
-          Crear mi perfil
-        </button>
-        <button className="btn btn--quiet" onClick={() => navigate('/entrar')}>
-          Ya me registré
-        </button>
-      </div>
+      {yaRespondio ? (
+        <div className="stack gap-12">
+          <button className="btn" onClick={() => navigate('/resultado')}>
+            Ver mi resultado
+          </button>
+          <button className="btn btn--quiet" onClick={salirDeEsteDispositivo}>
+            Salir de este dispositivo
+          </button>
+        </div>
+      ) : (
+        <div className="stack gap-12">
+          <button className="btn" disabled={cerrado} onClick={() => navigate('/registro')}>
+            Crear mi perfil
+          </button>
+          <button className="btn btn--quiet" onClick={() => navigate('/entrar')}>
+            Ya me registré
+          </button>
+        </div>
+      )}
     </section>
   )
 }

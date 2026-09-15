@@ -119,7 +119,7 @@ function EnSuspenso({ datos, navigate }) {
       </div>
 
       <Invitacion reunion={datos.reunion} />
-      <button className="btn btn--quiet" onClick={() => navigate('/')}>Salir</button>
+      <button className="btn btn--quiet" onClick={() => navigate('/')}>Volver al inicio</button>
     </section>
   )
 }
@@ -214,7 +214,7 @@ function Revelado({ datos, navigate }) {
         </div>
       )}
 
-      <button className="btn btn--quiet" onClick={() => navigate('/')}>Salir</button>
+      <button className="btn btn--quiet" onClick={() => navigate('/')}>Volver al inicio</button>
     </section>
   )
 }

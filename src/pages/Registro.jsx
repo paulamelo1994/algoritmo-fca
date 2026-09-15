@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import imageCompression from 'browser-image-compression'
 import { useBorrador, useConfig } from '../App'
+import { supabase } from '../lib/supabase'
 import { Aviso } from '../components/Base'
 
 const DOMINIO = /^[A-Za-z0-9._%+-]+@correounivalle\.edu\.co$/
@@ -22,14 +23,43 @@ export default function Registro() {
   const [error, setError] = useState('')
   const [procesandoFoto, setProcesandoFoto] = useState(false)
 
-  const set = (campo) => (e) => setDatos((d) => ({ ...d, [campo]: e.target.value }))
+  // Estado de la verificación del correo contra la base de datos.
+  // 'sin_revisar' | 'revisando' | 'libre' | 'ocupado' | 'falló'
+  const [correoEstado, setCorreoEstado] = useState('sin_revisar')
+
+  const set = (campo) => (e) => {
+    if (campo === 'correo') setCorreoEstado('sin_revisar')
+    setDatos((d) => ({ ...d, [campo]: e.target.value }))
+  }
 
   const correoValido = DOMINIO.test(datos.correo.trim())
   const completo =
     datos.nombre.trim().length >= 3 &&
     correoValido &&
+    correoEstado !== 'ocupado' &&
+    correoEstado !== 'revisando' &&
     datos.cumpleanos !== '' &&
     autoriza
+
+  /**
+   * Pregunta a la base de datos si el correo ya respondió.
+   * Devuelve true si se puede continuar. Si la consulta falla (sin
+   * internet, por ejemplo) devuelve true: no vale la pena bloquear a
+   * alguien por un problema de red, porque `registrar()` vuelve a
+   * revisarlo del lado del servidor antes de guardar.
+   */
+  async function verificarCorreo() {
+    const correo = datos.correo.trim().toLowerCase()
+    if (!DOMINIO.test(correo)) return false
+
+    setCorreoEstado('revisando')
+    const { data, error: err } = await supabase.rpc('correo_disponible', { p_correo: correo })
+
+    if (err) { setCorreoEstado('falló'); return true }
+    if (data?.disponible === false) { setCorreoEstado('ocupado'); return false }
+    setCorreoEstado('libre')
+    return true
+  }
 
   async function elegirFoto(e) {
     const archivo = e.target.files?.[0]
@@ -55,8 +85,17 @@ export default function Registro() {
     }
   }
 
-  function continuar(e) {
+  async function continuar(e) {
     e.preventDefault()
+    setError('')
+
+    // Última red antes del cuestionario, por si el campo nunca perdió el
+    // foco (pasa al enviar con Enter desde el teclado del celular).
+    if (correoEstado !== 'libre') {
+      const libre = await verificarCorreo()
+      if (!libre) return
+    }
+
     setBorrador((b) => ({
       ...b,
       datos: { ...datos, correo: datos.correo.trim().toLowerCase(), nombre: datos.nombre.trim() },
@@ -79,7 +118,7 @@ export default function Registro() {
       <div className="stack gap-8">
         <p className="eyebrow">Paso 1 de 2</p>
         <h2 className="h2">Empecemos por lo básico</h2>
-        <p className="small">Necesitamos identificarte para calcular tus afinidades y avisarte de la reunión.</p>
+        <p className="small">Necesitamos identificarte para calcular tus afinidades.</p>
       </div>
 
       <div className="stack gap-16">
@@ -94,10 +133,39 @@ export default function Registro() {
           <input id="f-correo" type="email" autoComplete="email" inputMode="email"
                  placeholder="nombre.apellido@correounivalle.edu.co"
                  value={datos.correo} onChange={set('correo')}
-                 aria-invalid={datos.correo !== '' && !correoValido} required />
-          {datos.correo !== '' && !correoValido
-            ? <span className="error">Debe terminar en @correounivalle.edu.co</span>
-            : <span className="hint">Es tu identificador: con él vuelves a entrar a ver tu resultado.</span>}
+                 onBlur={() => { if (correoValido) verificarCorreo() }}
+                 aria-invalid={(datos.correo !== '' && !correoValido) || correoEstado === 'ocupado'}
+                 aria-describedby="f-correo-ayuda"
+                 required />
+
+          <span id="f-correo-ayuda" role="status">
+            {datos.correo !== '' && !correoValido ? (
+              <span className="error">Debe terminar en @correounivalle.edu.co</span>
+            ) : correoEstado === 'revisando' ? (
+              <span className="hint">Comprobando el correo…</span>
+            ) : correoEstado === 'ocupado' ? (
+              <span className="error">
+                Este correo ya respondió el cuestionario. Cada persona participa una sola vez.
+              </span>
+            ) : correoEstado === 'libre' ? (
+              <span className="hint" style={{ color: 'var(--esmeralda)' }}>
+                Correo disponible.
+              </span>
+            ) : (
+              <span className="hint">
+                Es tu identificador: con él vuelves a entrar a ver tu resultado. No uses un
+                correo de dependencia si lo comparten varias personas.
+              </span>
+            )}
+          </span>
+
+          {correoEstado === 'ocupado' && (
+            <button type="button" className="btn btn--ghost btn--sm"
+                    style={{ marginTop: 4 }}
+                    onClick={() => navigate('/entrar')}>
+              Ver el resultado de este correo
+            </button>
+          )}
         </div>
 
         <div className="field">
@@ -106,12 +174,12 @@ export default function Registro() {
                  value={datos.dependencia} onChange={set('dependencia')} />
         </div>
 
-        <div className="field">
+        {/* <div className="field">
           <label htmlFor="f-tel">Celular <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(opcional)</span></label>
           <input id="f-tel" type="tel" autoComplete="tel" inputMode="tel" placeholder="300 000 0000"
                  value={datos.telefono} onChange={set('telefono')} />
           <span className="hint">Solo para avisarte de la reunión de revelación.</span>
-        </div>
+        </div> */}
 
         <div className="field">
           <label htmlFor="f-cumple">Fecha de cumpleaños</label>
@@ -160,7 +228,9 @@ export default function Registro() {
       {error && <Aviso>{error}</Aviso>}
 
       <div className="stack gap-12">
-        <button className="btn" type="submit" disabled={!completo}>Continuar</button>
+        <button className="btn" type="submit" disabled={!completo}>
+          {correoEstado === 'revisando' ? 'Comprobando…' : 'Continuar'}
+        </button>
         <button className="btn btn--quiet" type="button" onClick={() => navigate('/')}>Volver</button>
       </div>
     </form>

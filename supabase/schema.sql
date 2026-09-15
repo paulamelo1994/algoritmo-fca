@@ -241,9 +241,26 @@ language sql stable security definer set search_path = public as $$
   ) from configuracion c where c.id = 1;
 $$;
 
+-- ¿Este correo ya respondió? Se consulta desde la pantalla de registro,
+-- ANTES de que la persona conteste las once preguntas: enterarse de que
+-- el correo está tomado después de tres minutos de cuestionario es una
+-- mala experiencia y además pierde las respuestas.
+-- Devuelve solo un booleano: ni el nombre ni ningún otro dato salen.
+create or replace function correo_disponible(p_correo text)
+returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'disponible',
+    not exists (select 1 from participantes where correo = lower(btrim(p_correo)))
+  );
+$$;
+
 -- Registro: crea el participante y guarda sus respuestas en una sola
 -- transacción. Devuelve el código de acceso que el navegador guarda
 -- para poder volver a ver su resultado sin login.
+-- La verificación de duplicado se repite aquí a propósito: la del
+-- formulario es comodidad, esta es la que de verdad protege, porque
+-- corre dentro de la transacción y no se puede saltar.
 create or replace function registrar(payload jsonb)
 returns jsonb
 language plpgsql security definer set search_path = public as $$
@@ -594,6 +611,7 @@ create policy admin_complementos on complementos
 
 -- Permisos de ejecución de las funciones públicas.
 grant execute on function config_publica()              to anon, authenticated;
+grant execute on function correo_disponible(text)       to anon, authenticated;
 grant execute on function registrar(jsonb)              to anon, authenticated;
 grant execute on function recuperar_codigo(text, date)  to anon, authenticated;
 grant execute on function mi_resumen(text, uuid)        to anon, authenticated;
