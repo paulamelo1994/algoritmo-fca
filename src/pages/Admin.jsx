@@ -214,10 +214,6 @@ function Panel() {
               Descargar respaldo
             </button>
           </div>
-          <p className="tiny">
-            Mientras estos campos estén vacíos, la app muestra «Fecha por confirmar». Al llenarlos,
-            aparecen solos en la pantalla de todos los que ya respondieron.
-          </p>
         </div>
       </div>
 
@@ -225,7 +221,6 @@ function Panel() {
       <div className="card card--lift stack gap-24">
         <div className="stack gap-8">
           <h3 className="h2" style={{ fontSize: 20 }}>Los matches</h3>
-          <p className="small">Elige una categoría, proyecta la pantalla y revela el match frente al equipo.</p>
         </div>
 
         <div className="mt-tabs" role="group" aria-label="Tipos de match">
@@ -268,10 +263,6 @@ function Panel() {
               <span className="toggle__knob" />
             </button>
           </div>
-          <p className="tiny">
-            Enciéndelo al final de la reunión: todos los funcionarios podrán volver a abrir la
-            aplicación y ver en qué categorías quedaron y con quién.
-          </p>
         </div>
       </div>
 
@@ -399,7 +390,7 @@ function Escenario({ match, tipo, revelado, total }) {
           <p className="stage__kicker" style={{ color: t.color }}>{t.kicker}</p>
           <p className="stage__q" aria-hidden="true">? &nbsp; ?</p>
           <p className="small" style={{ maxWidth: '34ch' }}>
-            {t.corto} — el algoritmo ya lo calculó. Presiona «Revelar match» cuando el equipo esté mirando.
+            {t.corto} — el algoritmo ya lo calculó. Presiona «Revelar match».
           </p>
         </div>
       </div>
