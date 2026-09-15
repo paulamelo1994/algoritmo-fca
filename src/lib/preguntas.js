@@ -133,7 +133,7 @@ export const PREGUNTAS = [
   {
     id: 'secreto', tipo: 'texto', opcional: true,
     titulo: 'Algo que pocas personas de la Facultad saben de mí…',
-    ayuda: 'Se usa solo para el juego «¿Quién es?» de la reunión.',
+    ayuda: 'Se usa solo para el juego.',
     placeholder: 'Toqué en una banda de rock durante seis años',
   },
 ]
