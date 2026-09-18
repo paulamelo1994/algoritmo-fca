@@ -10,6 +10,7 @@ import Procesando from './pages/Procesando'
 import Resultado from './pages/Resultado'
 import Entrar from './pages/Entrar'
 import Admin from './pages/Admin'
+import AdminSecreto from './pages/AdminSecreto'
 
 /* ---------- Sesión del participante (sin login) ---------- */
 const CLAVE = 'algoritmo-fca:sesion'
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/resultado" element={<Resultado />} />
             <Route path="/entrar" element={<Entrar />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/secreto" element={<AdminSecreto />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

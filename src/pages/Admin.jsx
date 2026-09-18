@@ -1,68 +1,19 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useConfig } from '../App'
 import { Avatar, Badge, Cargando, Aviso } from '../components/Base'
 import { nivel, TIPOS_MATCH, ORDEN_MATCH } from '../lib/escala'
+import { SoloAdmin } from '../components/AccesoAdmin'
 
 export default function Admin() {
-  const [sesion, setSesion] = useState(undefined) // undefined = averiguando
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSesion(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSesion(s))
-    return () => sub.subscription.unsubscribe()
-  }, [])
-
-  if (sesion === undefined) return <div className="col"><Cargando /></div>
-  if (!sesion) return <Login />
-  return <Panel />
-}
-
-/* ---------------------------------------------------------------- */
-
-function Login() {
-  const [correo, setCorreo] = useState('')
-  const [clave, setClave] = useState('')
-  const [error, setError] = useState('')
-  const [enviando, setEnviando] = useState(false)
-
-  async function entrar(e) {
-    e.preventDefault()
-    setError(''); setEnviando(true)
-    const { error: err } = await supabase.auth.signInWithPassword({ email: correo, password: clave })
-    setEnviando(false)
-    if (err) setError('Correo o contraseña incorrectos.')
-  }
-
-  return (
-    <form className="col stack gap-24 pt-44" onSubmit={entrar}>
-      <div className="stack gap-8">
-        <p className="eyebrow">Acceso restringido</p>
-        <h2 className="h2">Panel de administración</h2>
-      </div>
-      <div className="stack gap-16">
-        <div className="field">
-          <label htmlFor="a-correo">Correo</label>
-          <input id="a-correo" type="email" autoComplete="username"
-                 value={correo} onChange={(e) => setCorreo(e.target.value)} required />
-        </div>
-        <div className="field">
-          <label htmlFor="a-clave">Contraseña</label>
-          <input id="a-clave" type="password" autoComplete="current-password"
-                 value={clave} onChange={(e) => setClave(e.target.value)} required />
-        </div>
-      </div>
-      {error && <Aviso>{error}</Aviso>}
-      <button className="btn" type="submit" disabled={enviando}>
-        {enviando ? 'Entrando…' : 'Entrar'}
-      </button>
-    </form>
-  )
+  return <SoloAdmin><Panel /></SoloAdmin>
 }
 
 /* ---------------------------------------------------------------- */
 
 function Panel() {
+  const navigate = useNavigate()
   const { config, recargar } = useConfig()
   const [gente, setGente] = useState(null)
   const [matches, setMatches] = useState([])
@@ -243,6 +194,25 @@ function Panel() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn btn--sm" disabled={revelado} onClick={() => setRevelado(true)}>Revelar match</button>
           <button className="btn btn--ghost btn--sm" disabled={!revelado} onClick={() => setRevelado(false)}>Ocultar de nuevo</button>
+        </div>
+
+        <hr className="divider" />
+
+        <div className="stack gap-12">
+          <p className="eyebrow" style={{ color: 'var(--morado)' }}>Modo reunión · Fase 4</p>
+          <div className="switch">
+            <div className="stack" style={{ gap: 4 }}>
+              <p className="h3">¿Quién es?</p>
+              <p className="tiny">
+                Muestra al azar la respuesta a «Algo que pocas personas saben de mí»
+                para que el equipo adivine de quién es.
+              </p>
+            </div>
+            <button className="btn btn--ghost btn--sm" style={{ flex: 'none' }}
+                    onClick={() => navigate('/admin/secreto')}>
+              Abrir el juego
+            </button>
+          </div>
         </div>
 
         <hr className="divider" />
